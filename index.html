@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#121927" />
+  <title>통통! 리듬 줄넘기</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f5ee;
+      --muted: #a5adbf;
+      --lime: #d8f36a;
+      --mint: #79f4c5;
+      --night: #121927;
+      --panel: #1c2636;
+      --line: rgba(236, 242, 255, .1);
+      --font: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      --display: 'Arial Rounded MT Bold', 'Malgun Gothic', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--ink); font-family: var(--font);
+      background: radial-gradient(ellipse at 50% -15%, #344460 0%, #1a2638 35%, var(--night) 74%);
+      display: grid; place-items: center; padding: 24px;
+    }
+    button { font: inherit; color: inherit; }
+    .app { width: min(1080px, 100%); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin: 0 2px 16px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 42px; height: 42px; border-radius: 15px; display: grid; place-items: center; background: var(--lime); color: #25301c; font-size: 23px; transform: rotate(-6deg); box-shadow: 0 5px 24px #d8f36a24; }
+    .brand-name { font-family: var(--display); font-size: 19px; letter-spacing: -.4px; }
+    .brand-kicker { color: #aab3c5; font-size: 11px; margin-top: 1px; letter-spacing: .4px; }
+    .top-actions { display: flex; gap: 8px; align-items: center; }
+    .best-chip, .icon-button { background: #ffffff0b; border: 1px solid var(--line); border-radius: 999px; height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+    .best-chip { padding: 0 14px; color: #bdc7d5; font-size: 12px; gap: 8px; }
+    .best-chip strong { color: var(--lime); font-family: var(--display); font-weight: 400; font-size: 15px; }
+    .icon-button { width: 40px; cursor: pointer; font-size: 16px; transition: .18s ease; }
+    .icon-button:hover { background: #ffffff18; transform: translateY(-1px); }
+    .game-shell { background: #182232e8; border: 1px solid #ffffff17; border-radius: 28px; padding: 15px; box-shadow: 0 30px 90px #070c1780, inset 0 1px #ffffff0a; }
+    .stage { position: relative; height: clamp(340px, 51vw, 510px); min-height: 340px; overflow: hidden; border-radius: 19px; background: #b5d6d0; isolation: isolate; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .stage-top { position: absolute; top: 17px; left: 19px; right: 19px; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none; }
+    .mode-label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 99px; color: #26384a; background: #f6fbefb8; backdrop-filter: blur(8px); font-size: 11px; letter-spacing: .3px; font-weight: bold; }
+    .mode-dot { width: 7px; height: 7px; border-radius: 50%; background: #8ab459; box-shadow: 0 0 0 3px #8ab45920; }
+    .mode-label.live .mode-dot { background: #e96e63; box-shadow: 0 0 0 3px #e96e6330; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: .38; } }
+    .live-stats { display: flex; gap: 7px; }
+    .stat-pill { min-width: 72px; text-align: center; padding: 7px 11px 6px; background: #1725368c; color: white; border: 1px solid #ffffff32; border-radius: 12px; backdrop-filter: blur(8px); }
+    .stat-pill span { display: block; color: #ffffffac; font-size: 9px; letter-spacing: .6px; text-transform: uppercase; }
+    .stat-pill strong { display: block; font-family: var(--display); font-size: 19px; line-height: 1.2; font-weight: 400; }
+    .overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 24px; background: linear-gradient(90deg, #11203365, #16253748 55%, #1220344e); transition: opacity .28s, visibility .28s; }
+    .overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .countdown { position: absolute; z-index: 2; left: 50%; top: 44%; transform: translate(-50%, -50%); color: #fffde8; font: 74px var(--display); text-shadow: 0 4px 20px #1b302a90; pointer-events: none; animation: count-pop .25s ease-out; }
+    .countdown[hidden] { display: none; }
+    @keyframes count-pop { from { transform: translate(-50%, -50%) scale(.7); opacity: .3; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    .hero-card { width: min(470px, 100%); text-align: center; padding: 27px 30px 25px; border-radius: 24px; border: 1px solid #ffffff66; background: #f5f4e8e8; color: #253243; box-shadow: 0 15px 60px #0b152548; backdrop-filter: blur(10px); animation: arrive .45s cubic-bezier(.2,.9,.3,1.15); }
+    @keyframes arrive { from { transform: translateY(12px) scale(.96); opacity: .3; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    .hero-emoji { font-size: 31px; margin-bottom: 6px; filter: drop-shadow(0 3px 0 #5269492b); }
+    h1 { margin: 0; font: 40px/.98 var(--display); letter-spacing: -1px; color: #26364a; }
+    .hero-card > p { color: #66717b; line-height: 1.7; font-size: 13px; margin: 12px auto 17px; max-width: 310px; }
+    .howto { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 11px 14px; background: #e9eddc; border-radius: 13px; color: #64705c; font-size: 11px; }
+    .keycap { display: inline-grid; place-items: center; min-width: 52px; height: 32px; padding: 0 10px; border: 1px solid #d5dcc4; border-bottom-width: 3px; border-radius: 8px; color: #344332; background: #fffef7; font-size: 11px; font-weight: bold; }
+    .start-button { width: 100%; height: 53px; border: 0; border-radius: 15px; margin-top: 16px; color: #29351d; font: 19px var(--display); cursor: pointer; background: var(--lime); box-shadow: 0 5px 0 #b3d14c, 0 9px 18px #5f712722; transition: transform .12s, box-shadow .12s, filter .12s; }
+    .start-button:hover { filter: brightness(1.035); transform: translateY(-1px); box-shadow: 0 6px 0 #b3d14c, 0 12px 21px #5f712722; }
+    .start-button:active { transform: translateY(3px); box-shadow: 0 2px 0 #b3d14c; }
+    .result-score { font: 37px var(--display); color: #536537; margin: 5px 0 0; }
+    .result-score small { font: 12px var(--font); color: #89927d; }
+    .result-detail { font-size: 12px; color: #727c72; margin: 4px 0 0; }
+    .game-controls { display: grid; grid-template-columns: 1fr minmax(200px, 330px) 1fr; align-items: center; gap: 16px; padding: 18px 8px 7px; }
+    .control-hint { display: flex; align-items: center; gap: 10px; color: #a6afbf; font-size: 12px; line-height: 1.5; }
+    .control-hint b { color: #e8ebf1; font-weight: 400; }
+    .space-key { display: inline-flex; align-items: center; justify-content: center; height: 31px; min-width: 61px; padding: 0 8px; border-radius: 8px; border: 1px solid #536071; border-bottom-width: 3px; color: #cbd4df; font-size: 9px; white-space: nowrap; }
+    .timing-wrap { min-width: 0; }
+    .timing-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #97a2b4; font-size: 10px; letter-spacing: .3px; }
+    .bpm { color: #cad29b; font-size: 10px; }
+    .timing-lane { height: 17px; position: relative; overflow: hidden; border-radius: 99px; border: 1px solid #9ba8b826; background: #101825; box-shadow: inset 0 2px 5px #03070b80; }
+    .success-zone { position: absolute; top: 0; bottom: 0; left: 0; width: 82%; border-radius: 99px; border: 1px solid #e2ff9a9c; background: linear-gradient(180deg, #c9ee8270, #a7d95b54); box-shadow: 0 0 13px #d7f37625; transition: left .15s, width .15s; }
+    .timing-lane::before { content: ''; position: absolute; z-index: 1; top: 2px; bottom: 2px; left: 40.9%; width: 2px; border-radius: 4px; background: #ddf26a; box-shadow: 0 0 9px #ddf26a9c; }
+    .lane-orb { position: absolute; z-index: 2; top: 50%; left: 0; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%, -50%); background: #e3fa96; box-shadow: 0 0 10px #dcff8c; opacity: 0; transition: opacity .2s; }
+    .lane-orb.active { opacity: 1; }
+    .grade-label { min-height: 17px; margin-top: 5px; text-align: center; color: #d7ec91; font: 14px var(--display); letter-spacing: .6px; }
+    .jump-button { justify-self: end; border: 1px solid #d8f36a50; border-radius: 16px; width: 100%; max-width: 148px; height: 58px; background: linear-gradient(135deg,#e3fa84,#bddf54); color: #344222; cursor: pointer; box-shadow: 0 4px 0 #9fbe45, 0 9px 22px #0003; font: 21px var(--display); transition: transform .12s, box-shadow .12s, filter .12s; }
+    .jump-button span { font-size: 10px; margin-left: 4px; opacity: .68; font-family: var(--font); }
+    .jump-button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .jump-button:active, .jump-button.pressed { transform: translateY(3px); box-shadow: 0 1px 0 #9fbe45; }
+    .jump-button:disabled { cursor: default; filter: saturate(.55); opacity: .55; }
+    .footer { display: flex; justify-content: center; gap: 7px; align-items: center; color: #748095; font-size: 10px; margin-top: 15px; }
+    .footer em { width: 3px; height: 3px; display: inline-block; border-radius: 50%; background: #576377; }
+    @media (max-width: 660px) {
+      body { padding: 13px; align-items: start; }
+      .app { margin-top: 5vh; }
+      .brand-mark { width: 38px; height: 38px; }
+      .brand-name { font-size: 17px; }
+      .best-chip { font-size: 10px; padding: 0 10px; }
+      .best-chip strong { font-size: 13px; }
+      .game-shell { padding: 8px; border-radius: 22px; }
+      .stage { height: clamp(350px, 112vw, 470px); min-height: 350px; border-radius: 16px; }
+      .stage-top { top: 12px; left: 12px; right: 12px; }
+      .stat-pill { min-width: 58px; padding: 6px 8px; }
+      .stat-pill strong { font-size: 16px; }
+      .stat-pill span { font-size: 8px; }
+      .mode-label { padding: 7px 9px; font-size: 9px; }
+      .overlay { padding: 16px; }
+      .hero-card { padding: 22px 20px 20px; }
+      h1 { font-size: 35px; }
+      .game-controls { grid-template-columns: 1fr auto; gap: 10px; padding: 14px 7px 8px; }
+      .control-hint { display: none; }
+      .timing-wrap { grid-column: 1; grid-row: 1; }
+      .jump-button { grid-column: 2; grid-row: 1; width: 122px; height: 54px; font-size: 18px; }
+      .footer { font-size: 9px; }
+    }
+    @media (max-width: 390px) { .brand-kicker { display: none; } .best-chip span { display:none; } .hero-card > p { font-size: 12px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">↗</div>
+        <div><div class="brand-name">통통! 리듬 줄넘기</div><div class="brand-kicker">JUMP TO THE BEAT</div></div>
+      </div>
+      <div class="top-actions">
+        <div class="best-chip"><span>최고 점수</span><strong id="bestScore">0</strong></div>
+        <button class="icon-button" id="soundButton" type="button" aria-label="소리 끄기" title="소리 켜기/끄기">♫</button>
+      </div>
+    </header>
+
+    <section class="game-shell" aria-label="줄넘기 리듬 게임">
+      <div class="stage" id="stage">
+        <canvas id="gameCanvas" aria-label="줄넘기하는 캐릭터"></canvas>
+        <div class="stage-top">
+          <div class="mode-label" id="modeLabel"><span class="mode-dot"></span><span id="modeText">준비 운동</span></div>
+          <div class="live-stats">
+            <div class="stat-pill"><span>점수</span><strong id="scoreValue">0</strong></div>
+            <div class="stat-pill"><span>콤보</span><strong id="comboValue">0</strong></div>
+            <div class="stat-pill"><span>성공 박자</span><strong id="beatValue">0</strong></div>
+          </div>
+        </div>
+        <div class="countdown" id="countdown" hidden>3</div>
+        <div class="overlay" id="overlay">
+          <div class="hero-card" id="heroCard">
+            <div class="hero-emoji" aria-hidden="true">🌱</div>
+            <h1 id="overlayTitle">박자에 맞춰<br>통통 뛰어봐!</h1>
+            <p id="overlayCopy">초록 구간 안에서 1~3번 연속 점프!<br>좁아졌다 넓어지는 구간을 버텨봐요.</p>
+          <div class="howto" id="howto"><span class="keycap">SPACE</span><span>초록 구간에서 1~3번 눌러요</span></div>
+            <div class="result-score" id="resultScore" hidden>0 <small>점</small></div>
+            <div class="result-detail" id="resultDetail" hidden></div>
+            <button class="start-button" id="startButton" type="button">줄넘기 시작</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-controls">
+        <div class="control-hint"><span class="space-key">SPACE</span><span>박자에 맞춰<br><b>점프!</b></span></div>
+        <div class="timing-wrap">
+          <div class="timing-head"><span>성공 범위 <span class="bpm" id="windowLabel">±285ms</span> <span class="bpm" id="windowTrend">↓</span></span><span class="bpm">♪ 86 BPM</span></div>
+          <div class="timing-lane" aria-label="초록 구간 안에서 점프"><span class="success-zone" id="successZone"></span><span class="lane-orb" id="laneOrb"></span></div>
+          <div class="grade-label" id="gradeLabel">준비되면 시작해요</div>
+        </div>
+        <button class="jump-button" id="jumpButton" type="button" disabled>점프 <span>SPACE</span></button>
+      </div>
+    </section>
+    <div class="footer"><span>성공 구간에서 1~3번 누르면 연속 점프</span><em></em><span>실패 한 번이면 탈락!</span></div>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const stage = document.getElementById('stage');
+      const overlay = document.getElementById('overlay');
+      const startButton = document.getElementById('startButton');
+      const jumpButton = document.getElementById('jumpButton');
+      const soundButton = document.getElementById('soundButton');
+      const laneOrb = document.getElementById('laneOrb');
+      const successZone = document.getElementById('successZone');
+      const windowLabel = document.getElementById('windowLabel');
+      const windowTrend = document.getElementById('windowTrend');
+      const gradeLabel = document.getElementById('gradeLabel');
+      const modeLabel = document.getElementById('modeLabel');
+      const modeText = document.getElementById('modeText');
+      const scoreValue = document.getElementById('scoreValue');
+      const comboValue = document.getElementById('comboValue');
+      const beatValue = document.getElementById('beatValue');
+      const bestScore = document.getElementById('bestScore');
+      const overlayTitle = document.getElementById('overlayTitle');
+      const overlayCopy = document.getElementById('overlayCopy');
+      const howto = document.getElementById('howto');
+      const resultScore = document.getElementById('resultScore');
+      const resultDetail = document.getElementById('resultDetail');
+      const countdown = document.getElementById('countdown');
+
+      const PERIOD = 60_000 / 86;
+      const TARGET_PHASE = 0.409;
+      const INITIAL_WINDOW = 285;
+      const FINAL_WINDOW = 100;
+      const WINDOW_CYCLE = 24_000;
+      const COLORS = { ink: '#24384a', mint: '#edf8a8', rope: '#f7ffce' };
+      let width = 0, height = 0, dpr = 1;
+      let state = 'ready';
+      let startedAt = 0, countdownEnds = 0, goUntil = 0, anchor = 0;
+      let pausedAt = 0, pausedElapsed = 0;
+      let score = 0, combo = 0, bestCombo = 0, misses = 0;
+      let doubles = 0, triples = 0, beatIndex = 0, tapCount = 0, jumpLevel = 1;
+      let feedback = '', feedbackUntil = 0, jumpAt = 0;
+      let muted = false, audioContext = null, audioReady = false, resumePending = false;
+      let soundTick = -9999;
+
+      try { bestScore.textContent = Number(localStorage.getItem('jump-rhythm-best') || 0).toLocaleString('ko-KR'); } catch (_) {}
+
+      function resize() {
+        const rect = stage.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = rect.width; height = rect.height;
+        canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      new ResizeObserver(resize).observe(stage);
+      resize();
+
+      function roundedRect(x, y, w, h, r) {
+        ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+      }
+
+      function drawBackground(t) {
+        const sky = ctx.createLinearGradient(0, 0, 0, height);
+        sky.addColorStop(0, '#c8e0d7'); sky.addColorStop(.65, '#dfe8cb'); sky.addColorStop(1, '#b8cfad');
+        ctx.fillStyle = sky; ctx.fillRect(0, 0, width, height);
+
+        // Soft afternoon sun and drifting clouds.
+        ctx.globalAlpha = .38; ctx.fillStyle = '#fff8d1'; ctx.beginPath(); ctx.arc(width * .79, height * .2, 42, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        for (let i = 0; i < 3; i++) {
+          const cloudX = ((width * (.08 + i * .36) + (t * (.005 + i * .002))) % (width + 130)) - 60;
+          const cloudY = height * (.19 + (i % 2) * .11);
+          ctx.fillStyle = '#f9fff0'; ctx.globalAlpha = .4;
+          ctx.beginPath(); ctx.ellipse(cloudX, cloudY, 32, 9, 0, 0, Math.PI * 2); ctx.ellipse(cloudX + 18, cloudY - 4, 18, 11, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#a8c9ad'; ctx.beginPath(); ctx.moveTo(0, height * .6); ctx.quadraticCurveTo(width * .18, height * .46, width * .39, height * .61); ctx.quadraticCurveTo(width * .68, height * .44, width, height * .63); ctx.lineTo(width, height); ctx.lineTo(0, height); ctx.fill();
+        ctx.fillStyle = '#87b18f'; ctx.beginPath(); ctx.moveTo(0, height * .72); ctx.quadraticCurveTo(width * .22, height * .58, width * .48, height * .72); ctx.quadraticCurveTo(width * .78, height * .59, width, height * .7); ctx.lineTo(width, height); ctx.lineTo(0, height); ctx.fill();
+        // Tiny flowers in the grass.
+        for (let i = 0; i < 24; i++) {
+          const x = ((i * 83 + 17) % Math.max(width, 1)); const y = height * (.73 + ((i * 37) % 25) / 100);
+          ctx.fillStyle = i % 3 === 0 ? '#f7efb2' : '#e9f2d0'; ctx.globalAlpha = .72;
+          ctx.beginPath(); ctx.arc(x, y, i % 4 === 0 ? 2 : 1.35, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawCharacter(now, phase) {
+        const cx = width * .5;
+        const floor = height * .79;
+        const jumpElapsed = now - jumpAt;
+        const jumping = jumpElapsed >= 0 && jumpElapsed < 420;
+        const jumpLift = jumping ? Math.sin(Math.PI * jumpElapsed / 420) * (38 + (jumpLevel - 1) * 18) : 0;
+        const bob = state === 'running' && !jumping ? Math.sin(now / 165) * 2 : Math.sin(now / 360) * 2;
+        const cy = floor - jumpLift + bob;
+        const scale = Math.min(1, width / 590);
+
+        // Ground shadow.
+        ctx.fillStyle = '#41694d30'; ctx.beginPath(); ctx.ellipse(cx, floor + 10, 82 - jumpLift * .42, 12, 0, 0, Math.PI * 2); ctx.fill();
+        // Rope behind the jumper. The low sweep passes the target marker.
+        const low = Math.pow(Math.max(0, Math.sin(phase * Math.PI)), 4);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#57694f'; ctx.globalAlpha = .22; ctx.lineWidth = 6 * scale;
+        ctx.beginPath(); ctx.moveTo(cx - 75 * scale, cy - 46 * scale); ctx.quadraticCurveTo(cx, floor + 8 * scale + low * 25 * scale, cx + 75 * scale, cy - 46 * scale); ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
+        // Feet and legs.
+        ctx.strokeStyle = '#374b61'; ctx.lineWidth = 12; ctx.lineCap = 'round';
+        const legSplay = jumping ? 6 : Math.sin(now / 180) * 2;
+        ctx.beginPath(); ctx.moveTo(-13, 48); ctx.lineTo(-20 - legSplay, 83); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(13, 48); ctx.lineTo(20 + legSplay, 83); ctx.stroke();
+        ctx.fillStyle = '#fbf7e7'; roundedRect(-36 - legSplay, 77, 31, 13, 7); ctx.fill();
+        roundedRect(8 + legSplay, 77, 31, 13, 7); ctx.fill();
+        // Arms behind the body, angled to the handles.
+        ctx.strokeStyle = '#f2b994'; ctx.lineWidth = 11;
+        ctx.beginPath(); ctx.moveTo(-22, -12); ctx.quadraticCurveTo(-49, 2, -60, 27); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(22, -12); ctx.quadraticCurveTo(49, 2, 60, 27); ctx.stroke();
+        // Oversized leaf-like hair tuft.
+        ctx.fillStyle = '#5c965d';
+        ctx.beginPath(); ctx.ellipse(-13, -55, 17, 22, -.48, 0, Math.PI * 2); ctx.ellipse(6, -62, 14, 24, .25, 0, Math.PI * 2); ctx.ellipse(18, -53, 15, 20, .72, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#87b977'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-12, -67); ctx.quadraticCurveTo(-9, -57, -6, -48); ctx.moveTo(6, -76); ctx.quadraticCurveTo(4, -64, 2, -50); ctx.stroke();
+        // Head and ears.
+        ctx.fillStyle = '#e9aa85'; ctx.beginPath(); ctx.arc(-31, -30, 9, 0, Math.PI * 2); ctx.arc(31, -30, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffd0aa'; ctx.beginPath(); ctx.ellipse(0, -31, 34, 37, 0, 0, Math.PI * 2); ctx.fill();
+        // Face.
+        ctx.fillStyle = '#334352'; ctx.beginPath(); ctx.ellipse(-11, -33, 2.7, 4, 0, 0, Math.PI * 2); ctx.ellipse(11, -33, 2.7, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f28b79'; ctx.globalAlpha = .55; ctx.beginPath(); ctx.ellipse(-21, -23, 6, 3.3, 0, 0, Math.PI * 2); ctx.ellipse(21, -23, 6, 3.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#ac6358'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -24, 6, .2, Math.PI - .2); ctx.stroke();
+        // Shirt, shorts, and collar.
+        ctx.fillStyle = '#ee795f'; ctx.beginPath(); ctx.moveTo(-25, -4); ctx.quadraticCurveTo(-32, 1, -34, 28); ctx.lineTo(-24, 45); ctx.quadraticCurveTo(0, 56, 24, 45); ctx.lineTo(34, 28); ctx.quadraticCurveTo(32, 1, 25, -4); ctx.quadraticCurveTo(0, 8, -25, -4); ctx.fill();
+        ctx.fillStyle = '#fff0ca'; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(0, 14); ctx.lineTo(9, 0); ctx.lineTo(5, -3); ctx.lineTo(0, 4); ctx.lineTo(-5, -3); ctx.fill();
+        ctx.fillStyle = '#4f7381'; roundedRect(-23, 39, 46, 19, 7); ctx.fill();
+        // Hands and rope handles.
+        ctx.fillStyle = '#ffc49d'; ctx.beginPath(); ctx.arc(-61, 28, 7, 0, Math.PI * 2); ctx.arc(61, 28, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#78684c'; roundedRect(-66, 24, 9, 13, 3); ctx.fill(); roundedRect(57, 24, 9, 13, 3); ctx.fill();
+        ctx.restore();
+
+        // Front arc, only show the rope low in its swing to keep the face clear.
+        if (low > .08) {
+          ctx.strokeStyle = COLORS.rope; ctx.shadowColor = '#fff7b8'; ctx.shadowBlur = 9;
+          ctx.lineWidth = 4 * scale; ctx.beginPath();
+          ctx.moveTo(cx - 61 * scale, cy + 28 * scale);
+          ctx.quadraticCurveTo(cx, floor + 2 * scale + low * 25 * scale, cx + 61 * scale, cy + 28 * scale);
+          ctx.stroke(); ctx.shadowBlur = 0;
+        }
+
+        if (jumping) {
+          const alpha = 1 - jumpElapsed / 420;
+          ctx.globalAlpha = alpha; ctx.fillStyle = '#476138'; ctx.font = 'bold 15px Jua, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(jumpLevel === 1 ? '통통!' : `${jumpLevel}단 점프!`, cx, cy - 113 * scale); ctx.globalAlpha = 1;
+        }
+      }
+
+      function draw(t) {
+        drawBackground(t);
+        let phase = 0;
+        if (state === 'running') phase = ((((t - anchor) / PERIOD) % 1) + 1) % 1;
+        else phase = (t / 1450) % 1;
+        drawCharacter(t, phase);
+      }
+
+      function showFeedback(text, time, color) {
+        feedback = text; feedbackUntil = time + 780;
+        gradeLabel.textContent = text;
+        gradeLabel.style.color = color || '#d7ec91';
+      }
+
+      function updateStats() {
+        scoreValue.textContent = score.toLocaleString('ko-KR');
+        comboValue.textContent = combo.toLocaleString('ko-KR');
+        beatValue.textContent = beatIndex.toLocaleString('ko-KR');
+      }
+
+      function setMode(text, live) {
+        modeText.textContent = text;
+        modeLabel.classList.toggle('live', !!live);
+      }
+
+      async function enableAudio() {
+        if (muted) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          if (!audioContext) audioContext = new AudioCtx();
+          if (audioContext.state === 'suspended') await audioContext.resume();
+          audioReady = true;
+        } catch (_) { audioReady = false; }
+      }
+
+      function playTone(freq, duration, gain, type, when) {
+        if (!audioReady || muted || !audioContext) return;
+        const osc = audioContext.createOscillator(); const amp = audioContext.createGain();
+        osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, when);
+        amp.gain.setValueAtTime(.0001, when); amp.gain.exponentialRampToValueAtTime(gain, when + .008); amp.gain.exponentialRampToValueAtTime(.0001, when + duration);
+        osc.connect(amp); amp.connect(audioContext.destination); osc.start(when); osc.stop(when + duration + .02);
+      }
+
+      function playBeat(time, index) {
+        if (!audioReady || muted || !audioContext) return;
+        const when = audioContext.currentTime + Math.max(0, (time - performance.now()) / 1000);
+        playTone(index % 4 === 0 ? 110 : 145, .13, .075, 'sine', when);
+        playTone(760, .035, .018, 'square', when + .012);
+      }
+
+      function targetAt(index = beatIndex) {
+        return anchor + TARGET_PHASE * PERIOD + index * PERIOD;
+      }
+
+      function windowAt(target) {
+        const elapsed = Math.max(0, target - startedAt);
+        const wave = (1 + Math.cos((2 * Math.PI * elapsed) / WINDOW_CYCLE)) / 2;
+        return Math.round(FINAL_WINDOW + (INITIAL_WINDOW - FINAL_WINDOW) * wave);
+      }
+
+      function updateTimingLane() {
+        const target = targetAt();
+        const window = windowAt(target);
+        const left = Math.max(0, TARGET_PHASE - window / PERIOD);
+        const right = Math.min(1, TARGET_PHASE + window / PERIOD);
+        successZone.style.left = `${left * 100}%`;
+        successZone.style.width = `${(right - left) * 100}%`;
+        windowLabel.textContent = `±${window}ms`;
+        const cyclePosition = ((target - startedAt) % WINDOW_CYCLE + WINDOW_CYCLE) % WINDOW_CYCLE;
+        const shrinking = cyclePosition < WINDOW_CYCLE / 2;
+        windowTrend.textContent = shrinking ? '↓' : '↑';
+        windowTrend.title = shrinking ? '성공 범위가 좁아지는 중' : '성공 범위가 넓어지는 중';
+        windowTrend.setAttribute('aria-label', windowTrend.title);
+      }
+
+      function begin() {
+        enableAudio();
+        state = 'countdown';
+        resumePending = false;
+        const now = performance.now();
+        countdownEnds = now + 3200;
+        startedAt = countdownEnds;
+        anchor = startedAt;
+        score = 0; combo = 0; bestCombo = 0; misses = 0; doubles = 0; triples = 0;
+        beatIndex = 0; tapCount = 0; jumpLevel = 1; jumpAt = -1;
+        soundTick = -9999;
+        updateStats();
+        overlay.classList.add('hidden');
+        countdown.hidden = false; countdown.textContent = '3';
+        jumpButton.disabled = true;
+        laneOrb.classList.remove('active');
+        gradeLabel.textContent = '준비!'; gradeLabel.style.color = '#d7ec91';
+        setMode('준비 운동', false);
+      }
+
+      function hit(time) {
+        if (state !== 'running') return;
+        advanceBeats(time);
+        if (state !== 'running') return;
+        const target = targetAt();
+        const window = windowAt(target);
+        if (time < target - window || time > target + window) {
+          misses++;
+          finish(true, time < target - window ? '성공 구간보다 일찍 눌렀어요.' : '초록 성공 구간을 놓쳤어요.');
+          return;
+        }
+        if (tapCount >= 3) return;
+        tapCount++;
+        jumpLevel = tapCount;
+        jumpAt = time;
+        const labels = ['JUMP!', 'DOUBLE JUMP!', 'TRIPLE JUMP!'];
+        const colors = ['#edfa9d', '#a2f1ca', '#b8d9ff'];
+        showFeedback(labels[tapCount - 1], time, colors[tapCount - 1]);
+        playTone([440, 560, 700][tapCount - 1], .075, .035, 'sine', audioContext ? audioContext.currentTime : 0);
+      }
+
+      function resolveBeat(time) {
+        const count = tapCount;
+        combo++; bestCombo = Math.max(bestCombo, combo);
+        const bonus = Math.min(combo, 50) * count * 5;
+        if (count === 1) score += 100 + bonus;
+        if (count === 2) { doubles++; score += 260 + bonus; }
+        if (count === 3) { triples++; score += 480 + bonus; }
+        showFeedback(count === 1 ? '1단 점프 성공!' : `${count}단 점프 성공!`, time, count === 3 ? '#b8d9ff' : '#d7ec91');
+      }
+
+      function advanceBeats(now) {
+        while (state === 'running') {
+          const target = targetAt();
+          if (now <= target + windowAt(target)) return;
+          if (tapCount === 0) {
+            misses++;
+            finish(true, '박자를 놓쳤어요. 한 번 실패하면 바로 탈락이에요.');
+            return;
+          }
+          resolveBeat(now);
+          beatIndex++;
+          tapCount = 0;
+          updateStats();
+        }
+      }
+
+      function finish(eliminated = false, reason = '') {
+        state = eliminated ? 'failed' : 'done';
+        jumpButton.disabled = true; laneOrb.classList.remove('active');
+        countdown.hidden = true;
+        setMode(eliminated ? '탈락' : '운동 완료', false);
+        let oldBest = 0;
+        try { oldBest = Number(localStorage.getItem('jump-rhythm-best') || 0); } catch (_) {}
+        if (score > oldBest) {
+          try { localStorage.setItem('jump-rhythm-best', String(score)); } catch (_) {}
+          bestScore.textContent = score.toLocaleString('ko-KR');
+        }
+        overlayTitle.innerHTML = eliminated ? '아차!<br>탈락했어요' : (score >= 9000 ? '리듬 천재<br>등장!' : '오늘도<br>가볍게 성공!');
+        overlayCopy.textContent = eliminated ? `${reason} 다음 판에는 초록 구간에서 눌러봐요.` : (score > oldBest && score > 0 ? '새로운 최고 기록이에요! 다음 기록도 기대할게요.' : '한 박자씩 잘 뛰었어요. 기록을 한 번 더 올려볼까요?');
+        howto.hidden = true;
+        resultScore.hidden = false; resultScore.innerHTML = `${score.toLocaleString('ko-KR')} <small>점</small>`;
+        resultDetail.hidden = false; resultDetail.textContent = `최고 ${bestCombo}콤보 · 2단 점프 ${doubles}회 · 3단 점프 ${triples}회`;
+        startButton.textContent = '한 판 더!';
+        overlay.classList.remove('hidden');
+        gradeLabel.textContent = eliminated ? '실패 한 번으로 탈락' : '멋진 도전이었어요!';
+        gradeLabel.style.color = eliminated ? '#ef9d8b' : '#d7ec91';
+      }
+
+      function frame(now) {
+        requestAnimationFrame(frame);
+        if (state === 'countdown' && now >= countdownEnds) {
+          state = 'running'; jumpButton.disabled = false; laneOrb.classList.add('active');
+          if (!resumePending) { startedAt = now; anchor = startedAt; }
+          resumePending = false;
+          countdown.textContent = 'GO!'; goUntil = now + 520;
+          setMode('리듬 플레이', true);
+          showFeedback('시작!', now, '#d7ec91');
+        }
+        if (state === 'countdown') {
+          countdown.textContent = String(Math.max(1, Math.ceil((countdownEnds - now) / 1000)));
+          countdown.hidden = false;
+        } else if (state === 'running' && now > goUntil) {
+          countdown.hidden = true;
+        }
+        if (state === 'running') {
+          const phase = ((((now - anchor) / PERIOD) % 1) + 1) % 1;
+          laneOrb.style.left = `${phase * 100}%`;
+          updateTimingLane();
+          advanceBeats(now);
+          if (state === 'running') {
+            const upcomingTarget = targetAt();
+            if (upcomingTarget > now && upcomingTarget - now < 80 && beatIndex !== soundTick) {
+              soundTick = beatIndex; playBeat(upcomingTarget, beatIndex);
+            }
+            if (feedback && now > feedbackUntil && gradeLabel.textContent === feedback) {
+              gradeLabel.textContent = '초록 구간에서 1~3번 눌러요'; gradeLabel.style.color = '#aeb8c7'; feedback = '';
+            }
+          }
+        }
+        draw(now);
+      }
+      requestAnimationFrame(frame);
+
+      function doJump() {
+        if (state === 'countdown') return;
+        hit(performance.now());
+        jumpButton.classList.add('pressed');
+        setTimeout(() => jumpButton.classList.remove('pressed'), 100);
+      }
+
+      startButton.addEventListener('click', () => {
+        howto.hidden = false; resultScore.hidden = true; resultDetail.hidden = true;
+        overlayTitle.innerHTML = '박자에 맞춰<br>통통 뛰어봐!';
+        overlayCopy.innerHTML = '초록 구간 안에서 1~3번 연속 점프!<br>좁아졌다 넓어지는 구간을 버텨봐요.';
+        startButton.textContent = '줄넘기 시작';
+        begin();
+      });
+      jumpButton.addEventListener('pointerdown', (event) => { event.preventDefault(); doJump(); });
+      window.addEventListener('keydown', (event) => {
+        if (event.code === 'Space' || event.code === 'ArrowUp') {
+          event.preventDefault();
+          if (!event.repeat) doJump();
+        }
+        if (event.code === 'Enter' && state === 'ready') begin();
+      });
+      soundButton.addEventListener('click', () => {
+        muted = !muted;
+        soundButton.textContent = muted ? '♫̸' : '♫';
+        soundButton.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
+        if (!muted) enableAudio();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && state === 'running') {
+          pausedAt = performance.now(); pausedElapsed = pausedAt - startedAt;
+          state = 'paused'; jumpButton.disabled = true; setMode('잠시 멈춤', false);
+          overlayTitle.innerHTML = '잠깐 쉬어가기'; overlayCopy.textContent = '화면을 다시 보려면 이어하기를 눌러주세요.';
+          howto.hidden = true; startButton.textContent = '이어하기'; resultScore.hidden = true; resultDetail.hidden = true;
+          overlay.classList.remove('hidden');
+        } else if (!document.hidden && state === 'paused') {
+          const resumeNow = performance.now();
+          // Keep the success-range cycle and beat phase still while the tab is away.
+          state = 'countdown'; countdownEnds = resumeNow + 1800;
+          resumePending = true;
+          startedAt = countdownEnds - pausedElapsed;
+          anchor += countdownEnds - pausedAt;
+          jumpButton.disabled = true; overlay.classList.add('hidden');
+          countdown.hidden = false; countdown.textContent = '준비'; setMode('준비 운동', false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
